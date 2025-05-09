@@ -8,16 +8,14 @@ using Proyecto_Tokens.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔹 Configurar la conexión a la base de datos
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("conexionSql")));
 
-// 🔹 Agregar servicios
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// 🔹 Registrar el servicio JWT personalizado
 builder.Services.AddScoped<JwtService>();
 
 // 🔹 Configurar la autenticación con JWT

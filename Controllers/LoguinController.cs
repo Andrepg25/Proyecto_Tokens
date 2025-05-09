@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Proyecto_Tokens.Models;
 using Proyecto_Tokens.Data;
 using Microsoft.AspNetCore.Identity;
-
+using Microsoft.EntityFrameworkCore; // Para Include
 
 [ApiController]
 [Route("api/[controller]")]
@@ -11,7 +11,6 @@ public class LoginController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly JwtService _jwtService;
-
     private readonly IPasswordHasher<UserModels> _passwordHasher;
 
     public LoginController(ApplicationDbContext context, JwtService jwtService, IPasswordHasher<UserModels> passwordHasher)
@@ -34,10 +33,20 @@ public class LoginController : ControllerBase
         if (result != PasswordVerificationResult.Success)
             return Unauthorized("Contraseña incorrecta");
 
+        // Guardar registro de login
+        var loginRegistro = new LoginRegistro
+        {
+            Usuario = usuario,
+        
+            FechaHoraLogin = DateTime.UtcNow
+        };
+
+        _context.LoginRegistro.Add(loginRegistro);
+        _context.SaveChanges();
+
         var token = _jwtService.GenerateToken(usuario.Correo_Electronico, usuario.Rol);
         return Ok(new { token });
     }
-
 
     [Authorize(Roles = "Administrador")]
     [HttpGet("admin")]
@@ -74,5 +83,39 @@ public class LoginController : ControllerBase
         return Ok("Usuario registrado con éxito.");
     }
 
+    [Authorize(Roles = "Administrador")]
+    [HttpGet("usuarios-activos")]
+    public IActionResult ObtenerUsuariosActivos()
+    {
+        var usuariosActivos = _context.Usuarios
+            .Where(u => u.Activo) // Asegúrate de que esta propiedad exista
+            .Select(u => new
+            {
+                u.ID,
+                u.Nombre_Usuario,
+                u.Correo_Electronico,
+                u.Rol
+            })
+            .ToList();
 
+        return Ok(usuariosActivos);
+    }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpGet("login-registros")]
+    public IActionResult VerLoginRegistros()
+    {
+        var registros = _context.LoginRegistro
+            .Include(r => r.Usuario)
+            .Select(r => new
+            {
+                r.ID,
+                r.FechaHoraLogin,
+                Usuario = r.Usuario.Nombre_Usuario,
+                Correo = r.Usuario.Correo_Electronico
+            })
+            .ToList();
+
+        return Ok(registros);
+    }
 }

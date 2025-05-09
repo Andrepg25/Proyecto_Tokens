@@ -4,6 +4,8 @@ namespace Proyecto_Tokens.Models
 {
     public class UserModels
     {
+        public bool Activo { get; set; }
+
         public int ID { get; set; }
 
         [Required]
